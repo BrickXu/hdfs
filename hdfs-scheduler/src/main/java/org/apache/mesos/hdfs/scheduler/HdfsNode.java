@@ -2,6 +2,7 @@ package org.apache.mesos.hdfs.scheduler;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.mesos.hdfs.state.TaskRecord;
 import org.apache.mesos.Protos.CommandInfo;
 import org.apache.mesos.Protos.Environment;
 import org.apache.mesos.Protos.ExecutorInfo;
@@ -40,7 +41,7 @@ public abstract class HdfsNode implements IOfferEvaluator, ILauncher {
     this.state = state;
     this.config = config;
     this.name = name;
-    this.resourceBuilder = new ResourceBuilder(config.getHdfsRole());
+    this.resourceBuilder = new ResourceBuilder(config.getRole());
   }
 
   public String getName() {
@@ -53,7 +54,7 @@ public abstract class HdfsNode implements IOfferEvaluator, ILauncher {
 
   public void launch(SchedulerDriver driver, Offer offer)
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
-    List<Task> tasks = createTasks(offer);
+    List<TaskRecord> tasks = createTasks(offer);
     List<TaskInfo> taskInfos = getTaskInfos(tasks);
 
     // The recording of Tasks is what can potentially throw the exceptions noted above.  This is good news
@@ -62,19 +63,19 @@ public abstract class HdfsNode implements IOfferEvaluator, ILauncher {
     driver.launchTasks(Arrays.asList(offer.getId()), taskInfos);
   }
 
-  private List<TaskInfo> getTaskInfos(List<Task> tasks) {
+  private List<TaskInfo> getTaskInfos(List<TaskRecord> tasks) {
     List<TaskInfo> taskInfos = new ArrayList<TaskInfo>();
 
-    for (Task task : tasks) {
+    for (TaskRecord task : tasks) {
       taskInfos.add(task.getInfo());
     }
 
     return taskInfos;
   }
 
-  private void recordTasks(List<Task> tasks)
+  private void recordTasks(List<TaskRecord> tasks)
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
-    for (Task task : tasks) {
+    for (TaskRecord task : tasks) {
       state.recordTask(task);
     }
   }
@@ -121,8 +122,8 @@ public abstract class HdfsNode implements IOfferEvaluator, ILauncher {
     List<String> names = new ArrayList<String>();
 
     try {
-      List<Task> tasks = state.getTasks();
-      for (Task task : tasks) {
+      List<TaskRecord> tasks = state.getTasks();
+      for (TaskRecord task : tasks) {
         if (task.getType().equals(taskType)) {
           names.add(task.getName());
         }
@@ -207,17 +208,17 @@ public abstract class HdfsNode implements IOfferEvaluator, ILauncher {
     return true;
   }
 
-  private List<Task> createTasks(Offer offer) {
+  private List<TaskRecord> createTasks(Offer offer) {
     String executorName = getExecutorName();
     String taskIdName = String.format("%s.%s.%d", name, executorName, System.currentTimeMillis());
-    List<Task> tasks = new ArrayList<Task>();
+    List<TaskRecord> tasks = new ArrayList<TaskRecord>();
 
     for (String type : getTaskTypes()) {
       List<Resource> resources = getTaskResources(type);
       ExecutorInfo execInfo = createExecutor(taskIdName, name, executorName);
       String taskName = getNextTaskName(type);
 
-      tasks.add(new Task(resources, execInfo, offer, taskName, type, taskIdName));
+      tasks.add(new TaskRecord(resources, execInfo, offer, taskName, type, taskIdName));
     }
 
     return tasks;

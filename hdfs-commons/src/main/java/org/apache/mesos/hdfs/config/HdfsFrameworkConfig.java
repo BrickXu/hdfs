@@ -34,6 +34,10 @@ public class HdfsFrameworkConfig {
   private static final double DEFAULT_JOURNAL_CPUS = 1;
   private static final double DEFAULT_DATANODE_CPUS = 1;
 
+  private static final int DEFAULT_DISK_SPACE = 0;
+  private static final int DEFAULT_JOURNALNODE_DISK_SPACE = 5000;
+  private static final int DEFAULT_DATANODE_DISK_SPACE = 5000;
+
   private static final double DEFAULT_JVM_OVERHEAD = 1.35;
   private static final int DEFAULT_JOURNAL_NODE_COUNT = 3;
   private static final int DEFAULT_FAILOVER_TIMEOUT_SEC = 31449600;
@@ -81,6 +85,7 @@ public class HdfsFrameworkConfig {
     NodeConfig config = new NodeConfig();
     config.setCpus(getTaskCpus(nodeType));
     config.setMaxHeap(getTaskHeapSize(nodeType));
+    config.setDiskSize(getTaskDiskSize(nodeType));
     config.setType(nodeType);
     return config;
   }
@@ -94,7 +99,7 @@ public class HdfsFrameworkConfig {
   }
 
   public String getPrincipal() {
-    return getConf().get("mesos.hdfs.principal", "");
+    return getConf().get("mesos.hdfs.principal", "default-principal");
   }
 
   public String getSecret() {
@@ -175,6 +180,17 @@ public class HdfsFrameworkConfig {
         throw new ConfigurationException(msg);
     }
     return size;
+  }
+
+  private int getTaskDiskSize(String taskName) {
+    switch (taskName) {
+      case "journalnode":
+        return DEFAULT_JOURNALNODE_DISK_SPACE;
+      case "datanode":
+        return DEFAULT_DATANODE_DISK_SPACE;
+      default:
+        return DEFAULT_DISK_SPACE;
+    }
   }
 
   public double getJvmOverhead() {
@@ -258,7 +274,7 @@ public class HdfsFrameworkConfig {
   }
 
   // TODO(elingg) This role needs to be updated.
-  public String getHdfsRole() {
+  public String getRole() {
     return getConf().get("mesos.hdfs.role", "*");
   }
 

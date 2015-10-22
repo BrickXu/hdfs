@@ -2,13 +2,15 @@ package org.apache.mesos.hdfs.state;
 
 import com.google.inject.Guice;
 import com.google.inject.Injector;
+import org.apache.mesos.protobuf.DiskInfoBuilder;
 import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.Offer;
 import org.apache.mesos.Protos.Resource;
+import org.apache.mesos.Protos.Resource.DiskInfo;
+import org.apache.mesos.Protos.TaskID;
 import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
 import org.apache.mesos.hdfs.TestSchedulerModule;
-import org.apache.mesos.hdfs.scheduler.Task;
 import org.apache.mesos.hdfs.util.HDFSConstants;
 import org.apache.mesos.hdfs.util.TaskStatusFactory;
 import org.apache.mesos.protobuf.CommandInfoBuilder;
@@ -35,33 +37,81 @@ public class TestHdfsState {
   private static final String TEST_TYPE = "type";
   private static final String TEST_NAME = "name";
 
-
   @Test
   public void testTerminalStatusUpdate()
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
     HdfsState state = injector.getInstance(HdfsState.class);
-    Task inTask = createTask();
+    TaskRecord inTask = createTask();
     state.recordTask(inTask);
 
     TaskStatus status = createTaskStatus(inTask.getId().getValue(), TaskState.TASK_FAILED);
     state.update(null, status);
-    List<Task> tasks = state.getTasks();
+    List<TaskRecord> tasks = state.getTasks();
     assertEquals(0, tasks.size());
+  }
+
+  @Test
+  public void testStoreVolumeRecord()
+    throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
+    HdfsState state = injector.getInstance(HdfsState.class);
+    VolumeRecord inVolume = createVolume("store-test-persistence-id", "store-test-task-id");
+    state.recordVolume(inVolume);
+
+    List<VolumeRecord> volumes = state.getVolumes();
+    assertEquals(1, volumes.size());
+  }
+
+  @Test
+  public void testFindOrphanedVolume()
+    throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
+    // Store a TaskRecord
+    HdfsState state = injector.getInstance(HdfsState.class);
+    TaskRecord inTask = createTask();
+    state.recordTask(inTask);
+
+    // Store a Volume NOT associated with that Task
+    VolumeRecord inVolume = createVolume("orphan-test-persistence-id", "bad-task-id");
+    state.recordVolume(inVolume);
+
+    // Verify that we find the expected orphaned volume
+    List<VolumeRecord> orphanedVolumes = state.getOrphanedVolumes();
+    assertEquals(1, orphanedVolumes.size());
+
+    VolumeRecord orphanedVolume = orphanedVolumes.get(0);
+    assertEquals(inVolume.getInfo(), orphanedVolume.getInfo());
+    assertEquals(inVolume.getTaskId(), orphanedVolume.getTaskId());
+  }
+
+  @Test
+  public void testNotFindOrphanedVolume()
+    throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
+    // Store a TaskRecord
+    HdfsState state = injector.getInstance(HdfsState.class);
+    TaskRecord inTask = createTask();
+    state.recordTask(inTask);
+
+    // Store a Volume associated with that Task
+    VolumeRecord inVolume = createVolume("orphan-test-persistence-id", inTask.getId().getValue());
+    state.recordVolume(inVolume);
+
+    // Verify that we fail to find an orphaned volume
+    List<VolumeRecord> orphanedVolumes = state.getOrphanedVolumes();
+    assertEquals(0, orphanedVolumes.size());
   }
 
   @Test
   public void testNonTerminalStatusUpdate()
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
     HdfsState state = injector.getInstance(HdfsState.class);
-    Task inTask = createTask();
+    TaskRecord inTask = createTask();
     state.recordTask(inTask);
 
     TaskStatus status = createTaskStatus(inTask.getId().getValue(), TaskState.TASK_RUNNING);
     state.update(null, status);
-    List<Task> tasks = state.getTasks();
+    List<TaskRecord> tasks = state.getTasks();
     assertEquals(1, tasks.size());
 
-    Task outTask = tasks.get(0);
+    TaskRecord outTask = tasks.get(0);
     assertEquals(status, outTask.getStatus());
   }
 
@@ -79,13 +129,13 @@ public class TestHdfsState {
   public void testGetNameNodeTasks()
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
     HdfsState state = injector.getInstance(HdfsState.class);
-    Task inTask = createNameNodeTask();
+    TaskRecord inTask = createNameNodeTask();
     state.recordTask(inTask);
 
-    List<Task> nameTasks = state.getNameNodeTasks();
+    List<TaskRecord> nameTasks = state.getNameNodeTasks();
     assertEquals(1, nameTasks.size());
 
-    List<Task> journalTasks = state.getJournalNodeTasks();
+    List<TaskRecord> journalTasks = state.getJournalNodeTasks();
     assertEquals(0, journalTasks.size());
   }
 
@@ -93,13 +143,13 @@ public class TestHdfsState {
   public void testGetJournalNodeTasks()
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
     HdfsState state = injector.getInstance(HdfsState.class);
-    Task inTask = createJournalNodeTask();
+    TaskRecord inTask = createJournalNodeTask();
     state.recordTask(inTask);
 
-    List<Task> journalTasks = state.getJournalNodeTasks();
+    List<TaskRecord> journalTasks = state.getJournalNodeTasks();
     assertEquals(1, journalTasks.size());
 
-    List<Task> nameTasks = state.getNameNodeTasks();
+    List<TaskRecord> nameTasks = state.getNameNodeTasks();
     assertEquals(0, nameTasks.size());
   }
 
@@ -109,8 +159,8 @@ public class TestHdfsState {
     HdfsState state = injector.getInstance(HdfsState.class);
     assertFalse(state.nameNodesInitialized());
 
-    Task namenode1Task = createNameNodeTask();
-    Task namenode2Task = createNameNodeTask();
+    TaskRecord namenode1Task = createNameNodeTask();
+    TaskRecord namenode2Task = createNameNodeTask();
     state.recordTask(namenode1Task);
     state.recordTask(namenode2Task);
 
@@ -127,29 +177,38 @@ public class TestHdfsState {
   private HdfsState createDefaultState()
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
     HdfsState state = injector.getInstance(HdfsState.class);
-    Task inTask = createTask();
+    TaskRecord inTask = createTask();
     state.recordTask(inTask);
     return state;
   }
 
-  private Task createTask() {
+  private TaskRecord createTask() {
     return createTask(TEST_NAME);
   }
 
-  private Task createNameNodeTask() {
+  private TaskRecord createNameNodeTask() {
     return createTask(HDFSConstants.NAME_NODE_ID);
   }
 
-  private Task createJournalNodeTask() {
+  private TaskRecord createJournalNodeTask() {
     return createTask(HDFSConstants.JOURNAL_NODE_ID);
   }
 
-  private Task createTask(String name) {
+  private TaskRecord createTask(String name) {
     List<Resource> resources = createResourceList();
     ExecutorInfo execInfo = createExecutorInfo();
     Offer offer = createOffer();
     String taskIdName = createTaskIdName();
-    return new Task(resources, execInfo, offer, name, TEST_TYPE, taskIdName);
+    return new TaskRecord(resources, execInfo, offer, name, TEST_TYPE, taskIdName);
+  }
+
+  private VolumeRecord createVolume(String persistenceId, String taskId) {
+    DiskInfoBuilder builder = new DiskInfoBuilder();
+    builder.setPersistence(persistenceId);
+    DiskInfo info = builder.build();
+    TaskID id = TaskID.newBuilder().setValue(taskId).build();
+
+    return new VolumeRecord(info, id);
   }
 
   public String createTaskIdName() {

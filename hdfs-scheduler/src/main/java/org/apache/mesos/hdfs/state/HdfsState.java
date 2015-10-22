@@ -9,7 +9,6 @@ import org.apache.mesos.Protos.TaskState;
 import org.apache.mesos.Protos.TaskStatus;
 import org.apache.mesos.hdfs.config.HdfsFrameworkConfig;
 import org.apache.mesos.hdfs.scheduler.StateFactory;
-import org.apache.mesos.hdfs.scheduler.Task;
 import org.apache.mesos.hdfs.util.HDFSConstants;
 import org.apache.mesos.protobuf.TaskStatusBuilder;
 import org.apache.mesos.state.State;
@@ -29,20 +28,24 @@ import java.util.concurrent.ExecutionException;
  * Reads and Writes the persisted state of the HDFS Framework.
  */
 public class HdfsState implements Observer {
+  private final State volState;
   private final State taskState;
   private final State schedulerState;
   private final Log log = LogFactory.getLog(HdfsState.class);
+  private final String zkVolumePath;
   private final String zkTaskPath;
   private final String zkSchedulerPath;
 
   @Inject
   public HdfsState(HdfsFrameworkConfig config, StateFactory stateFactory) {
     String zkPath = "/hdfs-mesos/" + config.getFrameworkName();
+    zkVolumePath = zkPath + "/volumes";
     zkTaskPath = zkPath + "/tasks";
     zkSchedulerPath = zkPath + "/scheduler";
 
     taskState = stateFactory.create(zkTaskPath, config);
     schedulerState = stateFactory.create(zkSchedulerPath, config);
+    volState = stateFactory.create(zkVolumePath, config);
 
     // Hack to initialize the path for Tasks.  This allows better logic
     // around returning an empty list of elements when querying the 
@@ -103,13 +106,13 @@ public class HdfsState implements Observer {
     schedulerState.expunge(var).get();
   }
 
-  public void recordTask(Task task)
+  public void recordTask(TaskRecord task)
     throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
     Variable var = taskState.fetch(task.getId().getValue()).get();
 
     TaskStatus currStatus = null;
     try {
-      Task currTask = (Task) Serializer.deserialize(var.value());
+      TaskRecord currTask = (TaskRecord) Serializer.deserialize(var.value());
       currStatus = currTask.getStatus();
       log.info("Retrieved old status: " + currStatus);
     } catch (Exception ex) {
@@ -123,6 +126,17 @@ public class HdfsState implements Observer {
     byte[] taskBytes = Serializer.serialize(task);
     var = var.mutate(taskBytes);
     taskState.store(var).get();
+  }
+
+  public void recordVolume(VolumeRecord vol)
+    throws ClassNotFoundException, IOException, InterruptedException, ExecutionException {
+    String persistenceId = vol.getInfo().getPersistence().getId();
+    Variable var = volState.fetch(persistenceId).get();
+
+    byte[] volBytes = Serializer.serialize(vol);
+    log.info("volBytes size: " + volBytes.length);
+    var = var.mutate(volBytes);
+    volState.store(var).get();
   }
 
   private TaskStatus mergeStatuses(TaskStatus curr, TaskStatus next) throws ClassNotFoundException {
@@ -141,10 +155,10 @@ public class HdfsState implements Observer {
     return next;
   }
 
-  public Set<String> getTaskIds() throws InterruptedException, ExecutionException {
+  private Set<String> getIds(State state) throws InterruptedException, ExecutionException {
     Set<String> ids = new HashSet<String>();
 
-    Iterator<String> iter = taskState.names().get();
+    Iterator<String> iter = state.names().get();
     while (iter.hasNext()) {
       ids.add(iter.next());
     }
@@ -152,24 +166,47 @@ public class HdfsState implements Observer {
     return ids;
   }
 
-  public List<Task> getTasks() throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
+  public Set<String> getTaskIds() throws InterruptedException, ExecutionException {
+    return getIds(taskState);
+  }
+
+  public Set<String> getPersistenceIds() throws InterruptedException, ExecutionException {
+    return getIds(volState);
+  }
+
+  public List<TaskRecord> getTasks()
+    throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
     Set<String> taskIds = getTaskIds();
 
-    List<Task> tasks = new ArrayList<Task>();
+    List<TaskRecord> tasks = new ArrayList<TaskRecord>();
     for (String taskId : taskIds) {
-      Task task = getTask(taskId);
+      TaskRecord task = getTask(taskId);
       tasks.add(task);
     }
 
     return tasks;
   }
 
-  private List<Task> getTasks(String nameFilter)
+  public List<VolumeRecord> getVolumes()
     throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
-    List<Task> inputTasks = getTasks();
-    List<Task> outputTasks = new ArrayList<Task>();
+    Set<String> persistenceIds = getPersistenceIds();
 
-    for (Task task : inputTasks) {
+    List<VolumeRecord> volumes = new ArrayList<VolumeRecord>();
+    log.info("persistenceIds: " + persistenceIds);
+    for (String persistenceId : persistenceIds) {
+      VolumeRecord volume = getVolume(persistenceId);
+      volumes.add(volume);
+    }
+
+    return volumes;
+  }
+
+  private List<TaskRecord> getTasks(String nameFilter)
+    throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
+    List<TaskRecord> inputTasks = getTasks();
+    List<TaskRecord> outputTasks = new ArrayList<TaskRecord>();
+
+    for (TaskRecord task : inputTasks) {
       if (task.getName().contains(nameFilter)) {
         outputTasks.add(task);
       }
@@ -188,7 +225,7 @@ public class HdfsState implements Observer {
       if (isTerminalState(newStatus)) {
         taskState.expunge(var).get();
       } else {
-        Task task = (Task) Serializer.deserialize(var.value());
+        TaskRecord task = (TaskRecord) Serializer.deserialize(var.value());
         TaskStatus oldStatus = task.getStatus();
         newStatus = mergeStatuses(oldStatus, newStatus);
 
@@ -204,7 +241,7 @@ public class HdfsState implements Observer {
 
   public boolean hostOccupied(String hostname, String taskType) {
     try {
-      for (Task task : getTasks()) {
+      for (TaskRecord task : getTasks()) {
         if (task.getHostname().equals(hostname) && task.getType().equals(taskType)) {
           return true;
         }
@@ -220,10 +257,17 @@ public class HdfsState implements Observer {
     return false;
   }
 
-  private Task getTask(String taskId)
+  private TaskRecord getTask(String taskId)
     throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
     Variable var = taskState.fetch(taskId).get();
-    return (Task) Serializer.deserialize(var.value());
+    return (TaskRecord) Serializer.deserialize(var.value());
+  }
+
+  private VolumeRecord getVolume(String persistenceId)
+    throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
+    log.info("Fetching volume: " + persistenceId);
+    Variable var = volState.fetch(persistenceId).get();
+    return (VolumeRecord) Serializer.deserialize(var.value());
   }
 
   private boolean isTerminalState(TaskStatus taskStatus) {
@@ -244,18 +288,18 @@ public class HdfsState implements Observer {
     return getNameNodeTasks().size();
   }
 
-  public List<Task> getNameNodeTasks()
+  public List<TaskRecord> getNameNodeTasks()
     throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
     return getTasks(HDFSConstants.NAME_NODE_ID);
   }
 
-  public List<Task> getJournalNodeTasks()
+  public List<TaskRecord> getJournalNodeTasks()
     throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
     return getTasks(HDFSConstants.JOURNAL_NODE_ID);
   }
 
   public boolean nameNodesInitialized() {
-    List<Task> tasks = null;
+    List<TaskRecord> tasks = null;
     try {
       tasks = getNameNodeTasks();
     } catch (Exception ex) {
@@ -264,7 +308,7 @@ public class HdfsState implements Observer {
     }
 
     int initCount = 0;
-    for (Task task : tasks) {
+    for (TaskRecord task : tasks) {
       TaskStatus status = task.getStatus();
       if (status != null) {
         for (Label label : status.getLabels().getLabelsList()) {
@@ -280,5 +324,34 @@ public class HdfsState implements Observer {
 
     log.info(String.format("%s/%s NameNodes initialized.", initCount, HDFSConstants.TOTAL_NAME_NODES));
     return initCount == HDFSConstants.TOTAL_NAME_NODES;
+  }
+
+  public List<VolumeRecord> getOrphanedVolumes()
+    throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
+    Set<String> taskIds = getTaskIds();
+    List<VolumeRecord> volumeRecords = getVolumes();
+    List<VolumeRecord> orphanedVolumes = new ArrayList<VolumeRecord>();
+
+    for (VolumeRecord vol : volumeRecords) {
+      if (!taskIds.contains(vol.getTaskId().getValue())) {
+        orphanedVolumes.add(vol);
+      }
+    }
+
+    return orphanedVolumes;
+  }
+
+  public List<VolumeRecord> getOrphanedVolumes(String prefixFilter)
+    throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
+    List<VolumeRecord> filteredVolumes = new ArrayList<VolumeRecord>();
+    List<VolumeRecord> orphanedVolumes = getOrphanedVolumes();
+
+    for (VolumeRecord volume : orphanedVolumes) {
+      if (volume.getPersistenceId().startsWith(prefixFilter)) {
+        filteredVolumes.add(volume);
+      }
+    }
+
+    return filteredVolumes;
   }
 }

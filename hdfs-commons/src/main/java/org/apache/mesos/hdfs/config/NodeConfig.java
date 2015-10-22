@@ -7,6 +7,7 @@ public class NodeConfig {
   private int maxHeap;
   private double cpus;
   private int port;
+  private int diskSize;
 
   public double getCpus() {
     return cpus;
@@ -22,6 +23,14 @@ public class NodeConfig {
 
   public void setMaxHeap(int maxHeap) {
     this.maxHeap = maxHeap;
+  }
+
+  public int getDiskSize() {
+    return diskSize;
+  }
+
+  public void setDiskSize(int diskSize) {
+    this.diskSize = diskSize;
   }
 
   public int getPort() {

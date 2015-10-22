@@ -1,4 +1,4 @@
-package org.apache.mesos.hdfs.scheduler;
+package org.apache.mesos.hdfs.state;
 
 import org.apache.mesos.Protos.ExecutorInfo;
 import org.apache.mesos.Protos.Offer;
@@ -14,16 +14,16 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * Task class encapsulates TaskInfo and metadata necessary for recording State when appropriate.
+ * TaskRecord class encapsulates TaskInfo and metadata necessary for recording State when appropriate.
  */
-public class Task implements Serializable {
+public class TaskRecord implements Serializable {
   private TaskInfo info;
   private TaskStatus status;
   private Offer offer;
   private String type;
   private String name;
 
-  public Task(
+  public TaskRecord(
     List<Resource> resources,
     ExecutorInfo execInfo,
     Offer offer,
@@ -91,3 +91,4 @@ public class Task implements Serializable {
     throw new TaskDeserializationException();
   }
 }
+

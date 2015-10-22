@@ -21,6 +21,7 @@ import org.apache.mesos.hdfs.config.HdfsFrameworkConfig;
 import org.apache.mesos.hdfs.state.AcquisitionPhase;
 import org.apache.mesos.hdfs.state.HdfsState;
 import org.apache.mesos.hdfs.state.StateMachine;
+import org.apache.mesos.hdfs.state.TaskRecord;
 import org.apache.mesos.hdfs.util.DnsResolver;
 import org.apache.mesos.process.FailureUtils;
 import org.apache.mesos.hdfs.util.HDFSConstants;
@@ -230,7 +231,7 @@ public class HdfsScheduler extends Observable implements org.apache.mesos.Schedu
       .setName(config.getFrameworkName())
       .setFailoverTimeout(config.getFailoverTimeout())
       .setUser(config.getHdfsUser())
-      .setRole(config.getHdfsRole())
+      .setRole(config.getRole())
       .setCheckpoint(true);
 
     try {
@@ -294,14 +295,14 @@ public class HdfsScheduler extends Observable implements org.apache.mesos.Schedu
       return;
     }
 
-    List<Task> tasks = null;
+    List<TaskRecord> tasks = null;
     try {
       tasks = state.getTasks();
     } catch (Exception ex) {
       FailureUtils.exit("Reloading configurations failed", HDFSConstants.RELOAD_EXIT_CODE);
     }
 
-    for (Task task : tasks) {
+    for (TaskRecord task : tasks) {
       TaskStatus status = task.getStatus();
       if (status != null) {
         sendMessageTo(driver, status.getTaskId(), status.getSlaveId(),

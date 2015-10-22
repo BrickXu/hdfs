@@ -1,6 +1,7 @@
 package org.apache.mesos.protobuf;
 
 import org.apache.mesos.Protos.Resource;
+import org.apache.mesos.Protos.Resource.ReservationInfo;
 import org.apache.mesos.Protos.Value;
 
 /**
@@ -28,6 +29,10 @@ public class ResourceBuilder {
 
   public Resource createMemResource(double value) {
     return mem(value, role);
+  }
+
+  public Resource createDiskResource(double value) {
+    return disk(value, role);
   }
 
   public Resource createPortResource(long begin, long end) {
@@ -60,20 +65,43 @@ public class ResourceBuilder {
       .build();
   }
 
-  public static Resource cpus(double value, String role) {
-    return createScalarResource("cpus", value, role);
+  public static Resource reservedCpus(double value, String role, String principal) {
+    Resource cpuRes = cpus(value, role);
+    return addReservation(cpuRes, role, principal);
   }
 
   public static Resource cpus(double value) {
     return cpus(value, DEFAULT_ROLE);
   }
 
-  public static Resource mem(double value, String role) {
-    return createScalarResource("mem", value, role);
+  public static Resource cpus(double value, String role) {
+    return createScalarResource("cpus", value, role);
+  }
+
+  public static Resource reservedMem(double value, String role, String principal) {
+    Resource memRes = mem(value, role);
+    return addReservation(memRes, role, principal);
   }
 
   public static Resource mem(double value) {
     return mem(value, DEFAULT_ROLE);
+  }
+
+  public static Resource mem(double value, String role) {
+    return createScalarResource("mem", value, role);
+  }
+
+  public static Resource reservedDisk(double value, String role, String principal) {
+    Resource diskRes = disk(value);
+    return addReservation(diskRes, role, principal);
+  }
+
+  public static Resource disk(double sizeInMB) {
+    return disk(sizeInMB, DEFAULT_ROLE);
+  }
+
+  public static Resource disk(double sizeInMB, String role) {
+    return createScalarResource("disk", sizeInMB, role);
   }
 
   public static Resource ports(long begin, long end, String role) {
@@ -82,5 +110,11 @@ public class ResourceBuilder {
 
   public static Resource ports(long begin, long end) {
     return ports(begin, end, DEFAULT_ROLE);
+  }
+
+  public static Resource addReservation(Resource resource, String role, String principal) {
+    return Resource.newBuilder(resource)
+      .setReservation(ReservationInfo.newBuilder()
+          .setPrincipal(principal)).build();
   }
 }

@@ -4,7 +4,7 @@ import com.floreysoft.jmte.Engine;
 import com.google.inject.Inject;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.mesos.hdfs.scheduler.Task;
+import org.apache.mesos.hdfs.state.TaskRecord;
 import org.apache.mesos.hdfs.state.HdfsState;
 import org.apache.mesos.hdfs.util.HDFSConstants;
 import org.eclipse.jetty.server.Handler;
@@ -72,10 +72,10 @@ public class ConfigServer {
     }
   }
 
-  private List<String> getHostNames(List<Task> tasks) {
+  private List<String> getHostNames(List<TaskRecord> tasks) {
     List<String> names = new ArrayList<String>();
 
-    for (Task task : tasks) {
+    for (TaskRecord task : tasks) {
       names.add(task.getHostname());
     }
 
