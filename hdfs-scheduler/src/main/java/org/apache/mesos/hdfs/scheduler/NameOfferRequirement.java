@@ -89,7 +89,6 @@ public class NameOfferRequirement implements OfferRequirement {
   }
 
   public boolean isSatisfiedForReservations(Offer offer) {
-    log.info("Offer: " + offer);
     boolean accept = false;
 
     String role = config.getRole();

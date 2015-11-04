@@ -91,6 +91,40 @@ public class TestNodeOfferRequirements {
 
     offer = createOfferBuilder(ENOUGH_JOURNAL_CPU, ENOUGH_JOURNAL_MEM, ENOUGH_JOURNAL_DISK-1).build();
     assertFalse(constraint.canBeSatisfied(offer));
+
+    // An offer with exactly the correct reserved resources should be accepted 
+    offer = createReservedOfferBuilder(
+        ENOUGH_JOURNAL_CPU,
+        ENOUGH_JOURNAL_MEM,
+        ENOUGH_JOURNAL_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertTrue(constraint.canBeSatisfied(offer));
+
+    // Offers with too much reserved resources should be rejected 
+    offer = createReservedOfferBuilder(
+        ENOUGH_JOURNAL_CPU+0.1,
+        ENOUGH_JOURNAL_MEM,
+        ENOUGH_JOURNAL_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createReservedOfferBuilder(
+        ENOUGH_JOURNAL_CPU,
+        ENOUGH_JOURNAL_MEM+1,
+        ENOUGH_JOURNAL_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createReservedOfferBuilder(
+        ENOUGH_JOURNAL_CPU,
+        ENOUGH_JOURNAL_MEM,
+        ENOUGH_JOURNAL_DISK+1,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
   }
 
   @Test
@@ -187,6 +221,40 @@ public class TestNodeOfferRequirements {
     assertFalse(constraint.canBeSatisfied(offer));
 
     offer = createOfferBuilder(ENOUGH_NAME_CPU, ENOUGH_NAME_MEM, ENOUGH_NAME_DISK-1).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    // An offer with exactly the correct reserved resources should be accepted 
+    offer = createReservedOfferBuilder(
+        ENOUGH_NAME_CPU,
+        ENOUGH_NAME_MEM,
+        ENOUGH_NAME_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertTrue(constraint.canBeSatisfied(offer));
+
+    // Offers with too much reserved resources should be rejected 
+    offer = createReservedOfferBuilder(
+        ENOUGH_NAME_CPU+0.1,
+        ENOUGH_NAME_MEM,
+        ENOUGH_NAME_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createReservedOfferBuilder(
+        ENOUGH_NAME_CPU,
+        ENOUGH_NAME_MEM+1,
+        ENOUGH_NAME_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createReservedOfferBuilder(
+        ENOUGH_NAME_CPU,
+        ENOUGH_NAME_MEM,
+        ENOUGH_NAME_DISK+1,
+        config.getRole(),
+        config.getPrincipal()).build();
     assertFalse(constraint.canBeSatisfied(offer));
   }
 

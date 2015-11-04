@@ -22,6 +22,10 @@ public class OfferRequirementUtils {
       int mem,
       int disk) {
 
+    boolean enoughCpus = false;
+    boolean enoughMem = false;
+    boolean enoughDisk = false;
+
     for (Resource resource : offer.getResourcesList()) {
       String resourceName = resource.getName();
       double availableValue = resource.getScalar().getValue();
@@ -31,9 +35,10 @@ public class OfferRequirementUtils {
           double neededCpus = getNeededCpus(cpus, config);
           log.info("Needed CPUs: " + neededCpus + " Available CPUs: " + availableValue);
 
-          if (neededCpus > availableValue) {
+          if (resourcesAcceptable(resource, neededCpus, availableValue)) {
+            enoughCpus = true;
+          } else {
             log.warn("Not enough CPU resources");
-            return false;
           }
           break;
 
@@ -41,24 +46,34 @@ public class OfferRequirementUtils {
           double neededMem = getNeededMem(mem, config);
           log.info("Needed Memory: " + neededMem + " Available Memory: " + availableValue);
 
-          if (neededMem > availableValue) {
+          if (resourcesAcceptable(resource, neededMem, availableValue)) {
+            enoughMem = true;
+          } else {
             log.warn("Not enough Memory resources");
-            return false;
           }
           break;
 
        case "disk":
           log.info("Needed Disk: " + disk + " Available disk: " + availableValue);
 
-          if (disk > availableValue) {
+          if (resourcesAcceptable(resource, disk, availableValue)) {
+            enoughDisk = true;
+          } else {
             log.warn("Not enough Disk resources");
-            return false;
           }
           break;
       }
     }
 
-    return true;
+    return enoughCpus && enoughMem && enoughDisk;
+  }
+
+  private static boolean resourcesAcceptable(Resource resource, double neededValue, double actualValue) {
+    if (isReserved(resource)) {
+      return neededValue == actualValue;
+    } else {
+      return neededValue <= actualValue;
+    }
   }
 
   public static double getNeededMem(double mem, HdfsFrameworkConfig config) {
@@ -106,6 +121,18 @@ public class OfferRequirementUtils {
     }
 
     return reservedResources; 
+  }
+
+  public static boolean isReserved(Resource resource) {
+    String principal = resource.getReservation().getPrincipal();
+    String role = resource.getRole();
+
+    if (role != null && !role.isEmpty() &&
+        principal != null && !principal.isEmpty()) {
+      return true;
+    }
+
+    return false;
   }
 
   public static boolean cpuReserved(Offer offer, double cpus, String role, String principal) {
