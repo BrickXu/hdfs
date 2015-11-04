@@ -34,12 +34,15 @@ public class HdfsFrameworkConfig {
   private static final double DEFAULT_JOURNAL_CPUS = 1;
   private static final double DEFAULT_DATANODE_CPUS = 1;
 
-  private static final int DEFAULT_DISK_SPACE = 0;
+  private static final int DEFAULT_DISK_SPACE = 1000;
   private static final int DEFAULT_JOURNALNODE_DISK_SPACE = 5000;
+  private static final int DEFAULT_NAMENODE_DISK_SPACE = 5000;
+  private static final int DEFAULT_ZKFC_DISK_SPACE = 0;
   private static final int DEFAULT_DATANODE_DISK_SPACE = 5000;
 
   private static final double DEFAULT_JVM_OVERHEAD = 1.35;
   private static final int DEFAULT_JOURNAL_NODE_COUNT = 3;
+  private static final int DEFAULT_NAME_NODE_COUNT = 2;
   private static final int DEFAULT_FAILOVER_TIMEOUT_SEC = 31449600;
   private static final int DEFAULT_ZK_TIME_MS = 20000;
   private static final int DEFAULT_RECONCILIATION_TIMEOUT_SEC = 4;
@@ -186,6 +189,8 @@ public class HdfsFrameworkConfig {
     switch (taskName) {
       case "journalnode":
         return DEFAULT_JOURNALNODE_DISK_SPACE;
+      case "namenode":
+        return DEFAULT_NAMENODE_DISK_SPACE;
       case "datanode":
         return DEFAULT_DATANODE_DISK_SPACE;
       default:
@@ -258,6 +263,10 @@ public class HdfsFrameworkConfig {
 
   public int getJournalNodeCount() {
     return getConf().getInt("mesos.hdfs.journalnode.count", DEFAULT_JOURNAL_NODE_COUNT);
+  }
+
+  public int getNameNodeCount() {
+    return DEFAULT_NAME_NODE_COUNT;
   }
 
   public String getFrameworkName() {

@@ -6,7 +6,7 @@ package org.apache.mesos.hdfs.state;
 public enum AcquisitionPhase {
 
   /**
-   * Waits here for the timeout on (re)registration.
+   * Performs task reconciliation 
    */
   RECONCILING_TASKS,
 
@@ -16,7 +16,7 @@ public enum AcquisitionPhase {
   JOURNAL_NODES,
 
   /**
-   * Launches the both namenodes.
+   * Launches the namenodes.
    */
   NAME_NODES,
 

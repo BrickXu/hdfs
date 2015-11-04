@@ -90,11 +90,18 @@ public class OfferRequirementUtils {
       String resName = resource.getName();
       double resValue = resource.getScalar().getValue();
 
-      if (resName.equals(resourceName) &&
-          resPrincipal.equals(principal) &&
-          resRole.equals(role) &&
-          resValue == value) {
-        reservedResources.add(resource);
+
+      if (resName.equals(resourceName)) {
+        log.info("Resource Name: " + resourceName);
+        log.info("Expected Value: " + value + " Actual Value: " + resValue);
+        log.info("Expected Role: " + role + " Actual Role: " + resRole);
+        log.info("Expected Principal: " + principal + " Actual Principal: " + resPrincipal);
+
+        if (resPrincipal.equals(principal) &&
+            resRole.equals(role) &&
+            resValue == value) {
+          reservedResources.add(resource);
+        }
       }
     }
 

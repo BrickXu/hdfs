@@ -6,6 +6,7 @@ import org.apache.mesos.hdfs.state.AcquisitionPhase;
 import org.apache.mesos.hdfs.config.HdfsFrameworkConfig;
 import org.apache.mesos.hdfs.state.HdfsState;
 import org.apache.mesos.hdfs.state.VolumeRecord;
+import org.apache.mesos.hdfs.util.DnsResolver;
 
 /**
  *
@@ -13,6 +14,7 @@ import org.apache.mesos.hdfs.state.VolumeRecord;
 public class OfferRequirementProvider {
   private HdfsState state;
   private HdfsFrameworkConfig config;
+  private DnsResolver dnsResolver;
   private AcquisitionPhase phase;
   private VolumeRecord volume;
 
@@ -20,10 +22,12 @@ public class OfferRequirementProvider {
   public OfferRequirementProvider(
       HdfsState state,
       HdfsFrameworkConfig config,
+      DnsResolver dnsResolver,
       AcquisitionPhase phase,
       VolumeRecord volume) {
     this.state = state;
     this.config = config;
+    this.dnsResolver = dnsResolver;
     this.phase = phase;
     this.volume = volume;
   }
@@ -36,8 +40,10 @@ public class OfferRequirementProvider {
     switch(phase) {
       case JOURNAL_NODES:
         return new JournalOfferRequirement(state, config, volume);
+      case NAME_NODES:
+        return new NameOfferRequirement(state, config, dnsResolver, volume);
     }
 
-    throw new Exception("Failed to create a valid Constraint");
+    throw new Exception("Failed to create a valid OfferRequirement");
   }
 }
