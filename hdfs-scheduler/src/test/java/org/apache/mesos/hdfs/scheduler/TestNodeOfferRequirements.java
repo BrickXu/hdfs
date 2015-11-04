@@ -29,15 +29,15 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import static org.mockito.Mockito.*;
 
-public class TestNodeConstraints {
+public class TestNodeOfferRequirements {
   private final Injector injector = Guice.createInjector(new TestSchedulerModule());
   private HdfsFrameworkConfig config = injector.getInstance(HdfsFrameworkConfig.class);
   private NodeConfig journalConfig = config.getNodeConfig(HDFSConstants.JOURNAL_NODE_ID);
   private ResourceBuilder resourceBuilder = new ResourceBuilder(config.getRole());
 
   private final int TARGET_JOURNAL_COUNT = config.getJournalNodeCount();
-  private final int ENOUGH_JOURNAL_MEM = (int) ConstraintUtils.getNeededMem(journalConfig.getMaxHeap(), config);
-  private final double ENOUGH_JOURNAL_CPU = ConstraintUtils.getNeededCpus(journalConfig.getCpus(), config);
+  private final int ENOUGH_JOURNAL_MEM = (int) OfferRequirementUtils.getNeededMem(journalConfig.getMaxHeap(), config);
+  private final double ENOUGH_JOURNAL_CPU = OfferRequirementUtils.getNeededCpus(journalConfig.getCpus(), config);
   private final int ENOUGH_JOURNAL_DISK = journalConfig.getDiskSize();
   private final VolumeRecord expectedVolume = createVolumeRecord("persistence-id", "task-id");
 
@@ -50,17 +50,17 @@ public class TestNodeConstraints {
   }
 
   @Test
-  public void createJournalConstraint() throws Exception {
-    ConstraintProvider provider = new ConstraintProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
-    Constraint constraint = provider.getNextConstraint();
-    assertTrue(constraint instanceof JournalConstraint);
+  public void createJournalOfferRequirement() throws Exception {
+    OfferRequirementProvider provider = new OfferRequirementProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
+    OfferRequirement constraint = provider.getNextOfferRequirement();
+    assertTrue(constraint instanceof JournalOfferRequirement);
   }
 
   @Test
-  public void testCanSatisfyJournalConstraint() throws Exception {
+  public void testCanSatisfyJournalOfferRequirement() throws Exception {
     when(state.getJournalCount()).thenReturn(TARGET_JOURNAL_COUNT-1);
-    ConstraintProvider provider = new ConstraintProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
-    Constraint constraint = provider.getNextConstraint();
+    OfferRequirementProvider provider = new OfferRequirementProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
+    OfferRequirement constraint = provider.getNextOfferRequirement();
 
     // An offer with enough resources should be accepted
     Offer offer = createOfferBuilder(ENOUGH_JOURNAL_CPU, ENOUGH_JOURNAL_MEM, ENOUGH_JOURNAL_DISK).build();
@@ -78,10 +78,10 @@ public class TestNodeConstraints {
   }
 
   @Test
-  public void testSatisfiesJournalResourceConstraints() throws Exception {
+  public void testSatisfiesJournalResourceOfferRequirements() throws Exception {
     when(state.getJournalCount()).thenReturn(TARGET_JOURNAL_COUNT-1);
-    ConstraintProvider provider = new ConstraintProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
-    Constraint constraint = provider.getNextConstraint();
+    OfferRequirementProvider provider = new OfferRequirementProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
+    OfferRequirement constraint = provider.getNextOfferRequirement();
 
     // An offer with enough resources which are not reserved should be rejected
     Offer offer = createOfferBuilder(ENOUGH_JOURNAL_CPU, ENOUGH_JOURNAL_MEM, ENOUGH_JOURNAL_DISK).build();
@@ -108,10 +108,10 @@ public class TestNodeConstraints {
   }
 
   @Test
-  public void testSatisfiesJournalVolumeConstraints() throws Exception {
+  public void testSatisfiesJournalVolumeOfferRequirements() throws Exception {
     when(state.getJournalCount()).thenReturn(TARGET_JOURNAL_COUNT-1);
-    ConstraintProvider provider = new ConstraintProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
-    Constraint constraint = provider.getNextConstraint();
+    OfferRequirementProvider provider = new OfferRequirementProvider(state, config, AcquisitionPhase.JOURNAL_NODES, expectedVolume);
+    OfferRequirement constraint = provider.getNextOfferRequirement();
 
     // An offer with enough reserved resouces, but no volumes should be rejected
     Offer offer = createReservedOfferBuilder(

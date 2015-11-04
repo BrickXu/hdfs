@@ -10,14 +10,14 @@ import org.apache.mesos.hdfs.state.VolumeRecord;
 /**
  *
  */
-public class ConstraintProvider {
+public class OfferRequirementProvider {
   private HdfsState state;
   private HdfsFrameworkConfig config;
   private AcquisitionPhase phase;
   private VolumeRecord volume;
 
   @Inject
-  public ConstraintProvider(
+  public OfferRequirementProvider(
       HdfsState state,
       HdfsFrameworkConfig config,
       AcquisitionPhase phase,
@@ -32,10 +32,10 @@ public class ConstraintProvider {
     this.volume = volume;
   }
 
-  public Constraint getNextConstraint() throws Exception {
+  public OfferRequirement getNextOfferRequirement() throws Exception {
     switch(phase) {
       case JOURNAL_NODES:
-        return new JournalConstraint(state, config, volume);
+        return new JournalOfferRequirement(state, config, volume);
     }
 
     throw new Exception("Failed to create a valid Constraint");

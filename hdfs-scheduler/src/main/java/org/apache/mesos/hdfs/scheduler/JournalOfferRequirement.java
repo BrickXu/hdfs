@@ -17,14 +17,14 @@ import org.apache.mesos.Protos.Resource;
 /**
  *
  */
-public class JournalConstraint implements Constraint {
-  private final Log log = LogFactory.getLog(JournalConstraint.class);
+public class JournalOfferRequirement implements OfferRequirement {
+  private final Log log = LogFactory.getLog(JournalOfferRequirement.class);
   private HdfsState state;
   private HdfsFrameworkConfig config;
   private NodeConfig nodeConfig;
   private VolumeRecord volume;
 
-  public JournalConstraint(HdfsState state, HdfsFrameworkConfig config, VolumeRecord volume)
+  public JournalOfferRequirement(HdfsState state, HdfsFrameworkConfig config, VolumeRecord volume)
     throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
     this.state = state;
     this.config = config;
@@ -55,7 +55,7 @@ public class JournalConstraint implements Constraint {
       return false;
     }
 
-    if (!ConstraintUtils.enoughResources(
+    if (!OfferRequirementUtils.enoughResources(
           offer,
           config,
           nodeConfig.getCpus(),
@@ -82,15 +82,15 @@ public class JournalConstraint implements Constraint {
     String principal = config.getPrincipal();
     String expectedPersistenceId = volume.getPersistenceId();
 
-    double cpus = ConstraintUtils.getNeededCpus(nodeConfig.getCpus(), config);
-    int mem = (int) ConstraintUtils.getNeededMem(nodeConfig.getMaxHeap(), config);
+    double cpus = OfferRequirementUtils.getNeededCpus(nodeConfig.getCpus(), config);
+    int mem = (int) OfferRequirementUtils.getNeededMem(nodeConfig.getMaxHeap(), config);
     int diskSize = nodeConfig.getDiskSize();
 
-    if (!ConstraintUtils.cpuReserved(offer, cpus, role, principal)) {
+    if (!OfferRequirementUtils.cpuReserved(offer, cpus, role, principal)) {
       log.info("Offer does not have it's CPU resources reserved.");
-    } else if (!ConstraintUtils.memReserved(offer, mem, role, principal)) {
+    } else if (!OfferRequirementUtils.memReserved(offer, mem, role, principal)) {
       log.info("Offer does not have it's Memory resources reserved.");
-    } else if (!ConstraintUtils.diskReserved(offer, diskSize, role, principal, expectedPersistenceId)) {
+    } else if (!OfferRequirementUtils.diskReserved(offer, diskSize, role, principal, expectedPersistenceId)) {
       log.info("Offer does not have it's Disk resources reserved.");
     } else {
       accept = true;
@@ -105,10 +105,10 @@ public class JournalConstraint implements Constraint {
     String principal = config.getPrincipal();
     String expectedPersistenceId = volume.getPersistenceId();
 
-    List<Resource> reservedResources = ConstraintUtils.getScalarReservedResources(offer, "disk", diskSize, role, principal);
+    List<Resource> reservedResources = OfferRequirementUtils.getScalarReservedResources(offer, "disk", diskSize, role, principal);
 
     for (Resource resource : reservedResources) {
-      String actualPersistenceId = ConstraintUtils.getPersistenceId(resource);
+      String actualPersistenceId = OfferRequirementUtils.getPersistenceId(resource);
 
       log.info(
           "Looking for persistence id: " + expectedPersistenceId +

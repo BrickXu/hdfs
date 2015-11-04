@@ -12,8 +12,8 @@ import org.apache.mesos.Protos.Resource;
 /**
  * 
  */
-public class ConstraintUtils {
-  private static final Log log = LogFactory.getLog(ConstraintUtils.class);
+public class OfferRequirementUtils {
+  private static final Log log = LogFactory.getLog(OfferRequirementUtils.class);
 
   public static boolean enoughResources(
       Offer offer,
