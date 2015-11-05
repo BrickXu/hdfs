@@ -52,6 +52,12 @@ public class TestNodeOfferRequirements {
   private final double ENOUGH_NAME_CPU =
     OfferRequirementUtils.getNeededCpus(nameConfig.getCpus() + zkfcConfig.getCpus(), config);
 
+  // DataNode Config/Defaults
+  private NodeConfig dataConfig = config.getNodeConfig(HDFSConstants.DATA_NODE_ID);
+  private final int ENOUGH_DATA_MEM = (int) OfferRequirementUtils.getNeededMem(dataConfig.getMaxHeap(), config);
+  private final int ENOUGH_DATA_DISK = dataConfig.getDiskSize();
+  private final double ENOUGH_DATA_CPU = OfferRequirementUtils.getNeededCpus(dataConfig.getCpus(), config);
+
   private final VolumeRecord expectedVolume = createVolumeRecord("persistence-id", "task-id");
 
   @Mock
@@ -67,16 +73,16 @@ public class TestNodeOfferRequirements {
 
   @Test
   public void createJournalOfferRequirement() throws Exception {
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.JOURNAL_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.JOURNAL_NODES);
     assertTrue(constraint instanceof JournalOfferRequirement);
   }
 
   @Test
-  public void testCanSatisfyJournalOfferRequirement() throws Exception {
+  public void canSatisfyJournalOfferRequirement() throws Exception {
     when(state.getJournalCount()).thenReturn(TARGET_JOURNAL_COUNT-1);
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.JOURNAL_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.JOURNAL_NODES);
 
     // An offer with enough resources should be accepted
     Offer offer = createOfferBuilder(ENOUGH_JOURNAL_CPU, ENOUGH_JOURNAL_MEM, ENOUGH_JOURNAL_DISK).build();
@@ -128,10 +134,10 @@ public class TestNodeOfferRequirements {
   }
 
   @Test
-  public void testSatisfiesJournalResourceOfferRequirements() throws Exception {
+  public void satisfiesJournalResourceOfferRequirements() throws Exception {
     when(state.getJournalCount()).thenReturn(TARGET_JOURNAL_COUNT-1);
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.JOURNAL_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.JOURNAL_NODES);
 
     // An offer with enough resources which are not reserved should be rejected
     Offer offer = createOfferBuilder(ENOUGH_JOURNAL_CPU, ENOUGH_JOURNAL_MEM, ENOUGH_JOURNAL_DISK).build();
@@ -158,10 +164,10 @@ public class TestNodeOfferRequirements {
   }
 
   @Test
-  public void testSatisfiesJournalVolumeOfferRequirements() throws Exception {
+  public void satisfiesJournalVolumeOfferRequirements() throws Exception {
     when(state.getJournalCount()).thenReturn(TARGET_JOURNAL_COUNT-1);
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.JOURNAL_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.JOURNAL_NODES);
 
     // An offer with enough reserved resouces, but no volumes should be rejected
     Offer offer = createReservedOfferBuilder(
@@ -195,19 +201,19 @@ public class TestNodeOfferRequirements {
 
   @Test
   public void createNameOfferRequirement() throws Exception {
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.NAME_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.NAME_NODES);
     assertTrue(constraint instanceof NameOfferRequirement);
   }
 
   @Test
-  public void testCanSatisfyNameOfferRequirement() throws Exception {
+  public void canSatisfyNameOfferRequirement() throws Exception {
     when(dnsResolver.journalNodesResolvable()).thenReturn(true);
     when(state.getNameCount()).thenReturn(TARGET_NAME_COUNT-1);
     when(state.hostOccupied(any(String.class), eq(HDFSConstants.JOURNAL_NODE_ID))).thenReturn(true);
 
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.NAME_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.NAME_NODES);
 
     // An offer with enough resources should be accepted
     Offer offer = createOfferBuilder(ENOUGH_NAME_CPU, ENOUGH_NAME_MEM, ENOUGH_NAME_DISK).build();
@@ -259,12 +265,12 @@ public class TestNodeOfferRequirements {
   }
 
   @Test
-  public void testSatisfiesNameResourceOfferRequirements() throws Exception {
+  public void satisfiesNameResourceOfferRequirements() throws Exception {
     when(dnsResolver.journalNodesResolvable()).thenReturn(true);
     when(state.getNameCount()).thenReturn(TARGET_NAME_COUNT-1);
 
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.NAME_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.NAME_NODES);
 
     // An offer with enough resources which are not reserved should be rejected
     Offer offer = createOfferBuilder(ENOUGH_NAME_CPU, ENOUGH_NAME_MEM, ENOUGH_NAME_DISK).build();
@@ -291,12 +297,12 @@ public class TestNodeOfferRequirements {
   }
 
   @Test
-  public void testSatisfiesNameVolumeOfferRequirements() throws Exception {
+  public void satisfiesNameVolumeOfferRequirements() throws Exception {
     when(dnsResolver.journalNodesResolvable()).thenReturn(true);
     when(state.getNameCount()).thenReturn(TARGET_NAME_COUNT-1);
 
-    OfferRequirementProvider provider = createOfferRequirementProvider(AcquisitionPhase.NAME_NODES);
-    OfferRequirement constraint = provider.getNextOfferRequirement();
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.NAME_NODES);
 
     // An offer with enough reserved resouces, but no volumes should be rejected
     Offer offer = createReservedOfferBuilder(
@@ -328,8 +334,134 @@ public class TestNodeOfferRequirements {
     assertFalse(constraint.isSatisfiedForVolumes(offer));
   }
 
-  private OfferRequirementProvider createOfferRequirementProvider(AcquisitionPhase phase) { 
-    return new OfferRequirementProvider(state, config, dnsResolver, phase, expectedVolume);
+
+  @Test
+  public void createDataOfferRequirement() throws Exception {
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.DATA_NODES);
+    assertTrue(constraint instanceof DataOfferRequirement);
+  }
+
+  @Test
+  public void canSatisfyDataOfferRequirement() throws Exception {
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.DATA_NODES);
+
+    // An offer with enough resources should be accepted
+    Offer offer = createOfferBuilder(ENOUGH_DATA_CPU, ENOUGH_DATA_MEM, ENOUGH_DATA_DISK).build();
+    assertTrue(constraint.canBeSatisfied(offer));
+
+    // Offers which lack the required resources of each type should be rejected
+    offer = createOfferBuilder(ENOUGH_JOURNAL_CPU-0.1, ENOUGH_DATA_MEM, ENOUGH_DATA_DISK).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createOfferBuilder(ENOUGH_DATA_CPU, ENOUGH_DATA_MEM-1, ENOUGH_DATA_DISK).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createOfferBuilder(ENOUGH_DATA_CPU, ENOUGH_DATA_MEM, ENOUGH_DATA_DISK-1).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    // An offer with exactly the correct reserved resources should be accepted 
+    offer = createReservedOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertTrue(constraint.canBeSatisfied(offer));
+
+    // Offers with too much reserved resources should be rejected 
+    offer = createReservedOfferBuilder(
+        ENOUGH_DATA_CPU+0.1,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createReservedOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM+1,
+        ENOUGH_DATA_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+
+    offer = createReservedOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK+1,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.canBeSatisfied(offer));
+  }
+
+  @Test
+  public void satisfiesDataResourceOfferRequirements() throws Exception {
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.DATA_NODES);
+
+    // An offer with enough resources which are not reserved should be rejected
+    Offer offer = createOfferBuilder(ENOUGH_DATA_CPU, ENOUGH_DATA_MEM, ENOUGH_DATA_DISK).build();
+    assertFalse(constraint.isSatisfiedForReservations(offer));
+
+    // An offer with enough reserved resources should be accepted
+    offer = createReservedOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertTrue(constraint.isSatisfiedForReservations(offer));
+
+    // An offer with enough reserved resources and a volume with the wrong persistence ID should be rejected 
+    offer = createVolumeOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK,
+        "bad-persistence-id",
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.isSatisfiedForReservations(offer));
+  }
+
+  @Test
+  public void satisfiesDataVolumeOfferRequirements() throws Exception {
+    OfferRequirementProvider provider = createOfferRequirementProvider();
+    OfferRequirement constraint = provider.getNextOfferRequirement(AcquisitionPhase.DATA_NODES);
+
+    // An offer with enough reserved resouces, but no volumes should be rejected
+    Offer offer = createReservedOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK,
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.isSatisfiedForVolumes(offer));
+
+    // An offer with enough reserved resources and the correct persistence ID should be accepted
+    offer = createVolumeOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK,
+        expectedVolume.getPersistenceId(),
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertTrue(constraint.isSatisfiedForVolumes(offer));
+
+    // An offer with enough reserved resources and a volume with the wrong persistence ID should be rejected 
+    offer = createVolumeOfferBuilder(
+        ENOUGH_DATA_CPU,
+        ENOUGH_DATA_MEM,
+        ENOUGH_DATA_DISK,
+        "bad-persistence-id",
+        config.getRole(),
+        config.getPrincipal()).build();
+    assertFalse(constraint.isSatisfiedForVolumes(offer));
+  }
+
+  private OfferRequirementProvider createOfferRequirementProvider() { 
+    return new OfferRequirementProvider(state, config, dnsResolver, expectedVolume);
   }
 
   private OfferBuilder createOfferBuilder(double cpus, int mem, int diskSize) {

@@ -15,7 +15,6 @@ public class OfferRequirementProvider {
   private HdfsState state;
   private HdfsFrameworkConfig config;
   private DnsResolver dnsResolver;
-  private AcquisitionPhase phase;
   private VolumeRecord volume;
 
   @Inject
@@ -23,12 +22,10 @@ public class OfferRequirementProvider {
       HdfsState state,
       HdfsFrameworkConfig config,
       DnsResolver dnsResolver,
-      AcquisitionPhase phase,
       VolumeRecord volume) {
     this.state = state;
     this.config = config;
     this.dnsResolver = dnsResolver;
-    this.phase = phase;
     this.volume = volume;
   }
 
@@ -36,14 +33,16 @@ public class OfferRequirementProvider {
     this.volume = volume;
   }
 
-  public OfferRequirement getNextOfferRequirement() throws Exception {
+  public OfferRequirement getNextOfferRequirement(AcquisitionPhase phase) throws Exception {
     switch(phase) {
       case JOURNAL_NODES:
         return new JournalOfferRequirement(state, config, volume);
       case NAME_NODES:
         return new NameOfferRequirement(state, config, dnsResolver, volume);
+      case DATA_NODES:
+        return new DataOfferRequirement(state, config, volume);
+      default:
+        throw new Exception("Unsupported Acquisition phase: " + phase);
     }
-
-    throw new Exception("Failed to create a valid OfferRequirement");
   }
 }
