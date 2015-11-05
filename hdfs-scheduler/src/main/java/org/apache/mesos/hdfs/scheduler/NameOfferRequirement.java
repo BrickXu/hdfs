@@ -15,14 +15,11 @@ import org.apache.mesos.hdfs.util.HDFSConstants;
 import org.apache.mesos.Protos.Offer;
 import org.apache.mesos.Protos.Resource;
 
-public class NameOfferRequirement implements OfferRequirement {
+public class NameOfferRequirement extends AbstractOfferRequirement {
   private final Log log = LogFactory.getLog(NameOfferRequirement.class);
-  private HdfsState state;
-  private HdfsFrameworkConfig config;
   private DnsResolver dnsResolver;
   private NodeConfig nameConfig;
   private NodeConfig zkfcConfig;
-  private VolumeRecord volume;
 
   public NameOfferRequirement(
       HdfsState state,
@@ -30,24 +27,10 @@ public class NameOfferRequirement implements OfferRequirement {
       DnsResolver dnsResolver,
       VolumeRecord volume)
     throws ClassNotFoundException, InterruptedException, ExecutionException, IOException {
-    this.state = state;
-    this.config = config;
-    this.dnsResolver = dnsResolver;
-    this.volume = volume;
+    super(state, config, volume, NameOfferRequirement.class);
     this.nameConfig = config.getNodeConfig(HDFSConstants.NAME_NODE_ID);
     this.zkfcConfig = config.getNodeConfig(HDFSConstants.ZKFC_NODE_ID);
-  }
-
-  private double getNeededCpus() {
-    return nameConfig.getCpus() + zkfcConfig.getCpus();
-  }
-
-  private int getNeededMem() {
-    return nameConfig.getMaxHeap() + zkfcConfig.getMaxHeap();
-  }
-  
-  private int getNeededDisk() {
-    return nameConfig.getDiskSize() + zkfcConfig.getDiskSize();
+    this.dnsResolver = dnsResolver;
   }
 
   public boolean canBeSatisfied(Offer offer) {
@@ -88,50 +71,15 @@ public class NameOfferRequirement implements OfferRequirement {
     return accept;
   }
 
-  public boolean isSatisfiedForReservations(Offer offer) {
-    boolean accept = false;
-
-    String role = config.getRole();
-    String principal = config.getPrincipal();
-    String expectedPersistenceId = volume.getPersistenceId();
-
-    double cpus = OfferRequirementUtils.getNeededCpus(getNeededCpus(), config);
-    int mem = (int) OfferRequirementUtils.getNeededMem(getNeededMem(), config);
-    int diskSize = getNeededDisk();
-
-    if (!OfferRequirementUtils.cpuReserved(offer, cpus, role, principal)) {
-      log.info("Offer does not have it's CPU resources reserved.");
-    } else if (!OfferRequirementUtils.memReserved(offer, mem, role, principal)) {
-      log.info("Offer does not have it's Memory resources reserved.");
-    } else if (!OfferRequirementUtils.diskReserved(offer, diskSize, role, principal, expectedPersistenceId)) {
-      log.info("Offer does not have it's Disk resources reserved.");
-    } else {
-      accept = true;
-    }
-
-    return accept;
+  protected double getNeededCpus() {
+    return nameConfig.getCpus() + zkfcConfig.getCpus();
   }
 
-  public boolean isSatisfiedForVolumes(Offer offer) {
-    int diskSize = getNeededDisk();
-    String role = config.getRole();
-    String principal = config.getPrincipal();
-    String expectedPersistenceId = volume.getPersistenceId();
-
-    List<Resource> reservedResources = OfferRequirementUtils.getScalarReservedResources(offer, "disk", diskSize, role, principal);
-
-    for (Resource resource : reservedResources) {
-      String actualPersistenceId = OfferRequirementUtils.getPersistenceId(resource);
-
-      log.info(
-          "Looking for persistence id: " + expectedPersistenceId +
-          "; Found volume with persistence id: " + actualPersistenceId);
-
-      if (expectedPersistenceId == actualPersistenceId) {
-        return true;
-      }
-    }
-
-    return false;
+  protected int getNeededMem() {
+    return nameConfig.getMaxHeap() + zkfcConfig.getMaxHeap();
+  }
+  
+  protected int getNeededDisk() {
+    return nameConfig.getDiskSize() + zkfcConfig.getDiskSize();
   }
 }
