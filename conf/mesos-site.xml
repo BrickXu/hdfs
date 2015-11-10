@@ -20,13 +20,13 @@
   <property>
     <name>mesos.hdfs.data.dir</name>
     <description>The primary data directory in HDFS</description>
-    <value>/var/lib/hdfs/data</value>
+    <value>/home/q/data/hdfs/pri_data</value>
   </property>
 
   <property>
     <name>mesos.hdfs.secondary.data.dir</name>
     <description>The secondary data directory in HDFS</description>
-    <value>/var/run/hadoop-hdfs</value>
+    <value>/home/q/data/hdfs/sec_data</value>
   </property>
 
   <!-- Uncomment this to enable backup
@@ -52,25 +52,25 @@
   <property>
     <name>mesos.hdfs.state.zk</name>
     <description>Comma-separated hostname-port pairs of zookeeper node locations for HDFS framework state information</description>
-    <value>localhost:2181</value>
+    <value>l-qmesoszk1.ops.cn2:2181,l-qmesoszk2.ops.cn2:2181,l-qmesoszk3.ops.cn2:2181</value>
   </property>
 
   <property>
     <name>mesos.master.uri</name>
     <description>Zookeeper entry for mesos master location</description>
-    <value>zk://localhost:2181/mesos</value>
+    <value>zk://l-qmesoszk1.ops.cn2:2181,l-qmesoszk2.ops.cn2:2181,l-qmesoszk3.ops.cn2:2181/mesos</value>
   </property>
 
   <property>
     <name>mesos.hdfs.zkfc.ha.zookeeper.quorum</name>
     <description>Comma-separated list of zookeeper hostname-port pairs for HDFS HA features</description>
-    <value>localhost:2181</value>
+    <value>l-qmesoszk1.ops.cn2:2181,l-qmesoszk2.ops.cn2:2181,l-qmesoszk3.ops.cn2:2181</value>
   </property>
 
   <property>
     <name>mesos.hdfs.framework.name</name>
     <description>Your Mesos framework name and cluster name when accessing files (hdfs://YOUR_NAME)</description>
-    <value>hdfs</value>
+    <value>HDFS on Mesos</value>
   </property>
 
   <property>
@@ -88,7 +88,7 @@
   <property>
     <name>mesos.native.library</name>
     <description>Location of libmesos.so</description>
-    <value>/usr/local/lib/libmesos.so</value>
+    <value>/usr/lib64/libmesos.so</value>
   </property>
 
   <property>
@@ -97,6 +97,17 @@
     <value>3</value>
   </property>
 
+  <property>
+    <name>mesos.hdfs.principal</name>
+    <value>hdfs</value>
+  </property>
+
+  <property>
+    <name>mesos.hdfs.secret</name>
+    <value>Uv3P3xWALo8MzTztpc6pJLILudFTsI</value>
+  </property>
+
+
   <!-- Additional settings for fine-tuning -->
   <!--
   <property>
@@ -104,10 +115,10 @@
     <description>Multiplier on resources reserved in order to account for JVM allocation</description>
     <value>1.35</value>
   </property>
-
+  -->
   <property>
     <name>mesos.hdfs.hadoop.heap.size</name>
-    <value>512</value>
+    <value>1024</value>
   </property>
 
   <property>
@@ -117,7 +128,7 @@
 
   <property>
     <name>mesos.hdfs.datanode.heap.size</name>
-    <value>1024</value>
+    <value>2048</value>
   </property>
 
   <property>
@@ -132,12 +143,12 @@
 
   <property>
     <name>mesos.hdfs.namenode.cpus</name>
-    <value>1</value>
+    <value>1.5</value>
   </property>
 
   <property>
     <name>mesos.hdfs.journalnode.cpus</name>
-    <value>1</value>
+    <value>1.5</value>
   </property>
 
   <property>
@@ -152,9 +163,9 @@
 
   <property>
     <name>mesos.hdfs.role</name>
-    <value>*</value>
+    <value>hdfs</value>
   </property>
-   
+  <!--
   <property>    
     <name>mesos.hdfs.datanode.exclusive</name>
     WARNING-It is not advisable to run the datanode on same slave because of performance issues
