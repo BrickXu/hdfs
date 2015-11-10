@@ -76,8 +76,7 @@ public abstract class HdfsNode implements IOfferEvaluator, ILauncher {
 
   private ExecutorInfo createExecutor(String taskIdName, String nodeName, String nnNum, String executorName) {
 
-    String cmd = "export JAVA_HOME=$MESOS_DIRECTORY/" + config.getJreVersion()
-      + " && env ; cd hdfs-mesos-* && "
+    String cmd = "env ; cd hdfs-mesos-* && "
       + "exec `if [ -z \"$JAVA_HOME\" ]; then echo java; "
       + "else echo $JAVA_HOME/bin/java; fi` "
       + "$HADOOP_OPTS "
@@ -105,8 +104,7 @@ public abstract class HdfsNode implements IOfferEvaluator, ILauncher {
       CommandInfoBuilder.createCmdInfoUri(String.format("http://%s:%d/%s", config.getFrameworkHostAddress(),
         confServerPort,
         HDFSConstants.HDFS_BINARY_FILE_NAME)),
-      CommandInfoBuilder.createCmdInfoUri(url),
-      CommandInfoBuilder.createCmdInfoUri(config.getJreUrl()));
+      CommandInfoBuilder.createCmdInfoUri(url));
   }
 
   private List<Environment.Variable> getExecutorEnvironment() {
